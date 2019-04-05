@@ -1,7 +1,7 @@
 /* 
  * tsh - A tiny shell program with job control
  * 
- * 
+ *
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -165,29 +165,38 @@ int main(int argc, char **argv)
  */
 void eval(char *cmdline) 
 {
-  // If 0 -> fg
-  int is_bg;
-  char *argv[MAXARGS];
-  int is_builtin;
-  pid_t pid;
+  int is_bg; // If 0 -> fg, Else -> bg
+  char *argv[MAXARGS]; // Args delimited by whitespace
+  int is_builtin; // If 0 -> not a built in cmd, Else -> built in command
+  pid_t pid; // Process ID of the job
   struct job_t *job;
 
+  // inits argv
   is_bg = parseline(cmdline, argv);
+  // Runs the cmd if it is built in, then either terminates the program or returns 1
+  // Else it returns 0, as it is assumed to be the path to an executable
   is_builtin = builtin_cmd(argv);
 
   if (!is_builtin) {
-    if ((pid = fork()) == 0) {
+    if ((pid = fork()) == 0) { // Not a built in command -> fork off a child process
+      /* Reminder of how this method works
+       * exec(v)(p):
+       *    (v) - to pass in an array of char*
+       *    (p) - use the environment path variable to search for an executable file
+      */
       execvp(argv[0], argv);
-      printf("%s: command not found\n", argv[0]);
-      exit(0);
+      printf("%s: command not found\n", argv[0]); // exec failed -> print error message
+      exit(0); // Terminate child process
     }
-    addjob(jobs, pid, is_bg ? BG : FG, cmdline);
-    if (!is_bg) {
+
+    if (!is_bg) { // fg job, therefore we must wait for it to complete
+      addjob(jobs, pid, FG, cmdline);
       waitfg(pid);
     }
-    else {
+    else { // bg job
+      addjob(jobs, pid, BG, cmdline);
       job = getjobpid(jobs, pid);
-      printf("[%d] (%d) %s\n", job->jid, job->pid, cmdline);
+      printf("[%d] (%d) %s\n", job->jid, job->pid, cmdline); // print out the details
     }
   }
 
@@ -261,19 +270,18 @@ int parseline(const char *cmdline, char **argv)
  */
 int builtin_cmd(char **argv) 
 {
-  if (strcmp(argv[0], "quit") == 0) {
-    exit(0);
+  if (strcmp(argv[0], "quit") == 0) { exit(0); } // quits the program
+
+  else if ((strcmp(argv[0], "bg") == 0) || (strcmp(argv[0], "fg") == 0)) { // TODO: call do_bgfg/ write func
+    return 1;
   }
-  else if (strcmp(argv[0], "bg") == 0) {
-    return 2;
+
+  else if (strcmp(argv[0], "jobs") == 0) { // Print out the jobs *necessary for trace05*
+    listjobs(jobs);
+    return 1;
   }
-  else if (strcmp(argv[0], "fg") == 0) {
-    return 3;
-  }
-  else if (strcmp(argv[0], "jobs") == 0) {
-    return 4;
-  }
-  return 0;     /* not a builtin command */
+
+  return 0; // not a builtin command
 }
 
 /* 
