@@ -276,7 +276,7 @@ int builtin_cmd(char **argv)
     return 1;
   }
 
-  else if (strcmp(argv[0], "jobs") == 0) { // Print out the jobs *necessary for trace05*
+  else if (strcmp(argv[0], "jobs") == 0) { // Print out the jobs *passes trace05*
     listjobs(jobs);
     return 1;
   }
@@ -331,12 +331,21 @@ void sigchld_handler(int sig)
 }
 
 /* 
- * sigint_handler - The kernel sends a SIGINT to the shell whenver the
+ * sigint_handler - The kernel sends a SIGINT to the shell whenever the
  *    user types ctrl-c at the keyboard.  Catch it and send it along
  *    to the foreground job.  
  */
 void sigint_handler(int sig) 
 {
+  pid_t pid;
+
+  /*
+   * If (pid > 0) -> sigint is sent to just that process
+   * Else if (pid <= 0) -> sigint is sent to all processes (oversimplification)
+  */
+  if ((pid = fgpid(jobs)) > 0) { // Get the pid of the fg process
+    kill(pid, SIGINT);
+  }
   return;
 }
 
