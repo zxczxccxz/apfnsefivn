@@ -343,8 +343,10 @@ void sigint_handler(int sig)
    * If (pid > 0) -> sigint is sent to just that process
    * Else if (pid <= 0) -> sigint is sent to all processes (oversimplification)
   */
-  if ((pid = fgpid(jobs)) > 0) { // Get the pid of the fg process
-    kill(pid, SIGINT);
+  pid = fgpid(jobs);
+  printf(pid);
+  if ((pid) > 0) { // Get the pid of the fg process
+    kill(-pid, SIGINT); // Hints said to use -pid
   }
   return;
 }
