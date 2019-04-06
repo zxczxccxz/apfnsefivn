@@ -378,7 +378,7 @@ void sigint_handler(int sig) {
      * If kill(-pid, SIGINT) == 0 -> successful
      * Else kill(-pid, SIGINT) == -1 -> errno is set
     */
-    if (kill(-pid, SIGINT) != 0) {
+    if (kill(-pid, sig) != 0) {
       printf("Error killing: %s\n", strerror(errno));
     }
   }
@@ -399,7 +399,7 @@ void sigtstp_handler(int sig) {
      * If kill(-pid, SIGINT) == 0 -> successful
      * Else kill(-pid, SIGINT) == -1 -> errno is set
     */
-    if (kill(-pid, SIGTSTP) != 0) {
+    if (kill(-pid, sig) != 0) {
       printf("Error stopping: %s\n", strerror(errno));
     }
   }
