@@ -349,6 +349,12 @@ void sigchld_handler(int sig) {
       printf("Job [%d] (%d) terminated by signal %d\n", jid, pid, status);
       deletejob(jobs, pid);
     }
+    else if (WIFSTOPPED(status)) {
+      jid = pid2jid(pid);
+      job = getjobpid(jobs, pid);
+      job->state = ST;
+      printf("Job [%d] (%d) stopped by signal %d\n", jid, pid, status);
+    }
   }
 
   return;
@@ -385,6 +391,19 @@ void sigint_handler(int sig) {
  *     foreground job by sending it a SIGTSTP.  
  */
 void sigtstp_handler(int sig) {
+  pid_t pid;
+
+  if ((pid = fgpid(jobs)) > 0) { // Get the pid of the fg process
+    /*
+     * Hints said to use -pid
+     * If kill(-pid, SIGINT) == 0 -> successful
+     * Else kill(-pid, SIGINT) == -1 -> errno is set
+    */
+    if (kill(-pid, SIGTSTP) != 0) {
+      printf("Error stopping: %s\n", strerror(errno));
+    }
+  }
+
   return;
 }
 
