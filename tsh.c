@@ -323,23 +323,23 @@ void do_bgfg(char **argv) {
   int secondArgToInt = is_jid ? atoi(argv[1] + 1) : atoi(argv[1]);
   job = is_jid ? getjobjid(jobs, secondArgToInt) : getjobpid(jobs, secondArgToInt);
 
-  printf("is JID: %d\n", is_jid);
-  printf("secParam: %d\n", secondArgToInt);
-  printf("pid: %d\n", job->pid);
+//  printf("is JID: %d\n", is_jid);
+//  printf("secParam: %d\n", secondArgToInt);
+//  printf("pid: %d\n", job->pid);
 
   if (kill(-job->pid, SIGCONT) != 0) {
     printf("Error starting job [%d] (%d): %s\n", job->jid, job->pid, strerror(errno));
   }
 
   if ((strcmp(argv[0], "fg")) == 0) { // fg command
-    printf("fg job\n");
+//    printf("fg job\n");
     job->state = FG;
     waitfg(job->pid);
   }
   else { // bg command
-    printf("bg job\n");
+//    printf("bg job\n");
+    printf("[%d] (%d) %s", job->jid, job->pid, job->cmdline);
     job->state = BG;
-    printf("[%d] (%d) %s %s\n", job->jid, job->pid, argv[0], argv[1]);
   }
 
   return;
