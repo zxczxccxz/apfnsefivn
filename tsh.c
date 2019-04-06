@@ -349,21 +349,21 @@ void sigchld_handler(int sig)
 void sigint_handler(int sig) 
 {
   pid_t pid;
+  int jid;
 
   /*
    * If (pid > 0) -> sigint is sent to just that process
    * Else if (pid <= 0) -> sigint is sent to all processes (oversimplification)
   */
-  pid = fgpid(jobs); // TODO: put this back in the if stmnt
-  printf("%d\n", pid);
-  if ((pid) > 0) { // Get the pid of the fg process
+  if ((pid = fgpid(jobs)) > 0) { // Get the pid of the fg process
+    jid = pid2jid(pid);
     /*
      * Hints said to use -pid
      * If kill(-pid, SIGINT) == 0 -> successful
      * Else kill(-pid, SIGINT) == -1 -> errno is set
     */
     if (kill(-pid, SIGINT) == 0) {
-      printf("Successful killing :)\n");
+      printf("Job [%d] (%d) terminated by signal 2\n", jid, pid);
     }
     else {
       printf("Error killing: %s\n", strerror(errno));
