@@ -309,46 +309,35 @@ int builtin_cmd(char **argv) {
  * do_bgfg - Execute the builtin bg and fg commands
  */
 void do_bgfg(char **argv) {
-  pid_t pid;
   struct job_t *job;
-  int is_jid = argv[1][0] == '%';
-  printf("is JID: %d\n", is_jid);
-  int secParam = atoi(argv[1]+1);
+  int is_jid;
 
-  if (is_jid) { // TODO: move argv[1][0] == '%' in the if stmnt
-    job = getjobjid(jobs, secParam); // TODO: error handling on this line
-    pid = job->pid;
+  if (argv[1] == NULL) { // No 2nd argument was entered
+    printf("Error: bgfg takes an argument and none were specified.");
+    return;
   }
   else {
-    job = getjobpid(jobs, secParam-1);
-    pid = job->pid;
+    is_jid = argv[1][0] == '%';
   }
 
-  printf("secParam: %d\n", secParam);
-  printf("pid: %d\n", pid);
+  printf("is JID: %d\n", is_jid);
+  int secondArgToInt = is_jid ? atoi(argv[1] + 1) : atoi(argv[1]);
+
+  job = is_jid ? getjobjid(jobs, secondArgToInt) : getjobpid(jobs, secondArgToInt);
+
+  printf("secParam: %d\n", secondArgToInt);
+
+  if (kill(-job->pid, SIGCONT) != 0) {
+    printf("Error starting job [%d] (%d): %s", job->jid, job->pid, strerror(errno));
+  }
 
   if ((strcmp(argv[0], "fg")) == 0) { // fg command
-    // restart job w sigcont
-    if (kill(-pid, SIGCONT) != 0) {
-      job->state = FG;
-      printf("[%d] (%d) %s %s\n", job->jid, job->pid, argv[0], argv[1]);
-    }
-    else {
-      printf("Error starting job [%d] (%d): %s", job->jid, job->pid, strerror(errno));
-    }
-    // runs in fg
+    job->state = FG;
+    waitfg(job->pid);
   }
   else { // bg command
-    // restart job w sigcont
-    if (kill(-pid, SIGCONT) != 0) {
-      job->state = BG;
-      printf("[%d] (%d) %s %s\n", job->jid, job->pid, argv[0], argv[1]);
-    }
-    else {
-      printf("Error starting job [%d] (%d): %s", job->jid, job->pid, strerror(errno));
-    }
-    // run in bg
-
+    job->state = BG;
+    printf("[%d] (%d) %s %s\n", job->jid, job->pid, argv[0], argv[1]);
   }
 
   return;
@@ -397,10 +386,6 @@ void sigchld_handler(int sig) {
       job = getjobpid(jobs, pid);
       job->state = ST;
       printf("Job [%d] (%d) stopped by signal 20\n", jid, pid); // TODO: Idk if its supposed to just be 20 all the time but using status was not working
-    }
-    else if (WIFCONTINUED(status)) {
-//      job = getjobpid(jobs, pid);
-//      job->state = BG;
     }
   }
 
