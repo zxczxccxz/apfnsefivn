@@ -175,8 +175,8 @@ void eval(char *cmdline) {
 
   strcpy(buf, cmdline);
   bg = parseline(cmdline, argv);
-  if (argv[0] == NULL) {
-    return; // Ignore empty lines
+  if (argv[0] == NULL) { // Ignore empty lines
+    return;
   }
 
   struct job_t *job;
@@ -184,19 +184,22 @@ void eval(char *cmdline) {
   // Runs the builtin command
   // Else -> If block executes
   if (!builtin_cmd(argv)) {
-    // TODO: textbook uses Fork wrapper
+
+    sleep(3);
+
     if ((pid = fork()) == 0) { // Not a built in command -> fork off a child process
       /*
        * If pid is 0 -> the PID of the calling process is used
        * If pgid is 0 -> the PGID of the process specified is made the same as its PID
       */
+
+      sleep(5);
+
       if ((setpgid(0, 0)) == 0) { // setpgid succeeded
-        /* Reminder of how this method works
-         * exec(v)(p):
-         *    (v) - to pass in an array of char*
-         *    (e) - pass environ global var
-        */
         if (execve(argv[0], argv, environ) < 0) {
+
+          sleep(7);
+
           printf("%s: Command not found\n", argv[0]); // exec failed -> print error message
           exit(0); // Terminate child process
         }
@@ -208,12 +211,17 @@ void eval(char *cmdline) {
     }
 
     if (!bg) { // fg job, therefore we must wait for it to complete
-      int status;
+
+      sleep(2);
+
       addjob(jobs, pid, FG, cmdline);
       waitfg(pid);
     }
 
     else { // bg job
+
+      sleep(4);
+
       addjob(jobs, pid, BG, cmdline);
       job = getjobpid(jobs, pid);
       printf("[%d] (%d) %s", job->jid, job->pid, cmdline); // print out the details
@@ -292,7 +300,7 @@ int builtin_cmd(char **argv) {
     return 1;
   }
 
-  else if ((strcmp(argv[0], "bg") == 0) || (strcmp(argv[0], "fg") == 0)) { // TODO: call do_bgfg/ write func
+  else if ((strcmp(argv[0], "bg") == 0) || (strcmp(argv[0], "fg") == 0)) {
     do_bgfg(argv);
     return 1;
   }
@@ -322,6 +330,13 @@ void do_bgfg(char **argv) {
     is_jid = argv[1][0] == '%';
   }
 
+  /*
+   * "is_jid ? x : y" is used repeatedly to:
+   *    increment the argv[1] ptr to skip the '%' char
+   *    discern what print statement should be used
+   *    discern which method is used to get the job
+  */
+
   // Check that the argument passed is an integer
   if (!(is_jid ? isdigit(*(argv[1] + 1)) : isdigit(*(argv[1])))) {
     printf("%s: argument must be a PID or %%jobid\n", argv[0]);
@@ -337,21 +352,15 @@ void do_bgfg(char **argv) {
     return;
   }
 
-//  printf("is JID: %d\n", is_jid);
-//  printf("secParam: %d\n", secondArgToInt);
-//  printf("pid: %d\n", job->pid);
-
   if (kill(-job->pid, SIGCONT) != 0) {
     printf("Error starting job [%d] (%d): %s\n", job->jid, job->pid, strerror(errno));
   }
 
   if ((strcmp(argv[0], "fg")) == 0) { // fg command
-//    printf("fg job\n");
     job->state = FG;
     waitfg(job->pid);
   }
   else { // bg command
-//    printf("bg job\n");
     printf("[%d] (%d) %s", job->jid, job->pid, job->cmdline);
     job->state = BG;
   }
