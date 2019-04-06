@@ -308,6 +308,35 @@ int builtin_cmd(char **argv) {
  * do_bgfg - Execute the builtin bg and fg commands
  */
 void do_bgfg(char **argv) {
+  pid_t pid;
+  struct job_t *job;
+  int is_jid = argv[1][0] == '%';
+  printf("is JID: %d\n", is_jid);
+
+  if (is_jid) { // TODO: move argv[1][0] == '%' in the if stmnt
+    job = getjobjid(jobs, atoi(argv[1]+1)); // TODO: error handling on this line
+    pid = job->pid;
+  }
+  else {
+    job = getjobpid(jobs, atoi(argv[1]+1));
+    pid = job->pid;
+  }
+
+  if ((strcmp(argv[0], "fg")) == 0) { // fg command
+    // restart job w sigcont
+    kill(-pid, SIGCONT);
+    // runs in fg
+  }
+  else { // bg command
+    // restart job w sigcont
+    if (kill(-pid, SIGCONT) != 0) {
+      job->state = BG;
+      printf("[%d] (%d) %s %s\n", job->jid, job->pid, argv[0], argv[1]);
+    }
+    // run in bg
+
+  }
+
   return;
 }
 
@@ -353,7 +382,11 @@ void sigchld_handler(int sig) {
       jid = pid2jid(pid);
       job = getjobpid(jobs, pid);
       job->state = ST;
-      printf("Job [%d] (%d) stopped by signal %d\n", jid, pid, status);
+      printf("Job [%d] (%d) stopped by signal 20\n", jid, pid); // TODO: Idk if its supposed to just be 20 all the time but using status was not working
+    }
+    else if (WIFCONTINUED(status)) {
+//      job = getjobpid(jobs, pid);
+//      job->state = BG;
     }
   }
 
