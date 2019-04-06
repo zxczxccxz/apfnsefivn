@@ -197,7 +197,7 @@ void eval(char *cmdline) {
          *    (e) - pass environ global var
         */
         if (execve(argv[0], argv, environ) < 0) {
-          printf("%s: command not found\n", argv[0]); // exec failed -> print error message
+          printf("%s: Command not found\n", argv[0]); // exec failed -> print error message
           exit(0); // Terminate child process
         }
       }
@@ -312,16 +312,30 @@ void do_bgfg(char **argv) {
   struct job_t *job;
   int is_jid;
 
-  if (argv[1] == NULL) { // No 2nd argument was entered
-    printf("Error: bgfg takes an argument and none were specified.");
+  // Return if no argument is specified
+  // Else determine if the argument is a jid or pid
+  if (argv[1] == NULL) {
+    printf("%s command requires PID or %%jobid argument\n", argv[0]);
     return;
   }
   else {
     is_jid = argv[1][0] == '%';
   }
 
+  // Check that the argument passed is an integer
+  if (!(is_jid ? isdigit(*(argv[1] + 1)) : isdigit(*(argv[1])))) {
+    printf("%s: argument must be a PID or %%jobid\n", argv[0]);
+    return;
+  }
+
   int secondArgToInt = is_jid ? atoi(argv[1] + 1) : atoi(argv[1]);
   job = is_jid ? getjobjid(jobs, secondArgToInt) : getjobpid(jobs, secondArgToInt);
+
+  if (job == NULL) {
+    is_jid ? printf("%s: No such job\n", argv[1])
+           : printf("(%s): No such process\n", argv[1]);
+    return;
+  }
 
 //  printf("is JID: %d\n", is_jid);
 //  printf("secParam: %d\n", secondArgToInt);
