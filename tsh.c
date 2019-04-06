@@ -311,7 +311,7 @@ void waitfg(pid_t pid)
   struct job_t *job;
   job = getjobpid(jobs, pid);
 
-  if (job->state == FG) {
+  while (job->state == FG) {
     sleep(1);
   }
   return;
@@ -331,11 +331,19 @@ void waitfg(pid_t pid)
 void sigchld_handler(int sig) 
 {
   pid_t pid;
+  int jid;
   int status;
 //  struct job_t *job;
 
-  while ((pid = waitpid(-1, &status, WNOHANG)) > 0) {
-    deletejob(jobs, pid);
+  while ((pid = waitpid(-1, &status, WNOHANG|WUNTRACED)) > 0) {
+    if (WIFEXITED(status)) {
+      deletejob(jobs, pid);
+    }
+    else if (WIFSIGNALED(status)) {
+      jid = pid2jid(pid);
+      printf("Job [%d] (%d) terminated by signal %d\n", jid, pid, status);
+      deletejob(jobs, pid);
+    }
   }
 
   return;
