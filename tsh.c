@@ -216,7 +216,7 @@ void eval(char *cmdline) {
     else { // bg job
       addjob(jobs, pid, BG, cmdline);
       job = getjobpid(jobs, pid);
-      printf("[%d] (%d) %s\n", job->jid, job->pid, cmdline); // print out the details
+      printf("[%d] (%d) %s", job->jid, job->pid, cmdline); // print out the details
     }
   }
 
@@ -361,22 +361,18 @@ void sigchld_handler(int sig) {
  */
 void sigint_handler(int sig) {
   pid_t pid;
-  int jid;
 
   /*
    * If (pid > 0) -> sigint is sent to just that process
    * Else if (pid <= 0) -> sigint is sent to all processes (oversimplification)
   */
   if ((pid = fgpid(jobs)) > 0) { // Get the pid of the fg process
-    jid = pid2jid(pid);
     /*
      * Hints said to use -pid
      * If kill(-pid, SIGINT) == 0 -> successful
      * Else kill(-pid, SIGINT) == -1 -> errno is set
     */
-    if (kill(-pid, SIGINT) == 0) {
-      printf("Job [%d] (%d) terminated by signal 2\n", jid, pid);
-    } else {
+    if (kill(-pid, SIGINT) != 0) {
       printf("Error killing: %s\n", strerror(errno));
     }
   }
