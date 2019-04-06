@@ -185,7 +185,7 @@ void eval(char *cmdline) {
   // Else -> If block executes
   if (!builtin_cmd(argv)) {
 
-    sleep(1);
+    //sleep(1);
 
     if ((pid = fork()) == 0) { // Not a built in command -> fork off a child process
       /*
@@ -193,12 +193,12 @@ void eval(char *cmdline) {
        * If pgid is 0 -> the PGID of the process specified is made the same as its PID
       */
 
-      sleep(1);
+      //sleep(1);
 
       if ((setpgid(0, 0)) == 0) { // setpgid succeeded
         if (execve(argv[0], argv, environ) < 0) {
 
-          sleep(2);
+          //sleep(2);
 
           printf("%s: Command not found\n", argv[0]); // exec failed -> print error message
           exit(0); // Terminate child process
@@ -212,7 +212,7 @@ void eval(char *cmdline) {
 
     if (!bg) { // fg job, therefore we must wait for it to complete
 
-      sleep(2);
+      //sleep(2);
 
       addjob(jobs, pid, FG, cmdline);
       waitfg(pid);
@@ -220,7 +220,7 @@ void eval(char *cmdline) {
 
     else { // bg job
 
-      sleep(1);
+      //sleep(1);
 
       addjob(jobs, pid, BG, cmdline);
       job = getjobpid(jobs, pid);
@@ -401,7 +401,8 @@ void sigchld_handler(int sig) {
   while ((pid = waitpid(-1, &status, WNOHANG | WUNTRACED)) > 0) {
     if (WIFEXITED(status)) {
       deletejob(jobs, pid);
-    } else if (WIFSIGNALED(status)) {
+    }
+    else if (WIFSIGNALED(status)) {
       jid = pid2jid(pid);
       printf("Job [%d] (%d) terminated by signal %d\n", jid, pid, status);
       deletejob(jobs, pid);
