@@ -293,6 +293,7 @@ int builtin_cmd(char **argv) {
   }
 
   else if ((strcmp(argv[0], "bg") == 0) || (strcmp(argv[0], "fg") == 0)) { // TODO: call do_bgfg/ write func
+    do_bgfg(argv);
     return 1;
   }
 
@@ -312,15 +313,19 @@ void do_bgfg(char **argv) {
   struct job_t *job;
   int is_jid = argv[1][0] == '%';
   printf("is JID: %d\n", is_jid);
+  int secParam = atoi(argv[1]+1);
 
   if (is_jid) { // TODO: move argv[1][0] == '%' in the if stmnt
-    job = getjobjid(jobs, atoi(argv[1]+1)); // TODO: error handling on this line
+    job = getjobjid(jobs, secParam); // TODO: error handling on this line
     pid = job->pid;
   }
   else {
-    job = getjobpid(jobs, atoi(argv[1]+1));
+    job = getjobpid(jobs, secParam-1);
     pid = job->pid;
   }
+
+  printf("secParam: %d\n", secParam);
+  printf("pid: %d\n", pid);
 
   if ((strcmp(argv[0], "fg")) == 0) { // fg command
     // restart job w sigcont
