@@ -329,7 +329,13 @@ void do_bgfg(char **argv) {
 
   if ((strcmp(argv[0], "fg")) == 0) { // fg command
     // restart job w sigcont
-    kill(-pid, SIGCONT);
+    if (kill(-pid, SIGCONT) != 0) {
+      job->state = FG;
+      printf("[%d] (%d) %s %s\n", job->jid, job->pid, argv[0], argv[1]);
+    }
+    else {
+      printf("Error starting job [%d] (%d): %s", job->jid, job->pid, strerror(errno));
+    }
     // runs in fg
   }
   else { // bg command
@@ -337,6 +343,9 @@ void do_bgfg(char **argv) {
     if (kill(-pid, SIGCONT) != 0) {
       job->state = BG;
       printf("[%d] (%d) %s %s\n", job->jid, job->pid, argv[0], argv[1]);
+    }
+    else {
+      printf("Error starting job [%d] (%d): %s", job->jid, job->pid, strerror(errno));
     }
     // run in bg
 
