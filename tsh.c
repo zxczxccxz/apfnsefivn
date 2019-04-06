@@ -182,25 +182,28 @@ int main(int argc, char **argv) {
  * when we type ctrl-c (ctrl-z) at the keyboard.  
  */
 void eval(char *cmdline) {
-  int is_bg; // If 0 -> fg, Else -> bg
+
   char *argv[MAXARGS]; // Args delimited by whitespace
-  int is_builtin; // If 0 -> not a built in cmd, Else -> built in command
+  char buf[MAXLINE];
+  int bg; // If 0 -> fg, Else -> bg
   pid_t pid; // Process ID of the job
+
+  strcpy(buf, cmdline);
+  bg = parseline(cmdline, argv);
+  if (argv[0] == NULL) {
+    return; // Ignore empty lines
+  }
+
   struct job_t *job;
 
-  // inits argv
-  is_bg = parseline(cmdline, argv);
-  // Runs the cmd if it is built in, then either terminates the program or returns 1
-  // Else it returns 0, as it is assumed to be the path to an executable
-  is_builtin = builtin_cmd(argv);
-
-  if (!is_builtin) {
+  // Runs the builtin command
+  // Else -> If block executes
+  if (!builtin_cmd(argv)) {
+    // TODO: textbook uses Fork wrapper
     if ((pid = fork()) == 0) { // Not a built in command -> fork off a child process
       /*
-       * If pid is 0
-       * -> the PID of the calling process is used
-       * If pgid is 0
-       * -> the PGID of the process specified is made the same as its PID
+       * If pid is 0 -> the PID of the calling process is used
+       * If pgid is 0 -> the PGID of the process specified is made the same as its PID
       */
       if ((setpgid(0, 0)) == 0) { // setpgid succeeded
         /* Reminder of how this method works
@@ -208,18 +211,24 @@ void eval(char *cmdline) {
          *    (v) - to pass in an array of char*
          *    (e) - pass environ global var
         */
-        execve(argv[0], argv, environ);
-        printf("%s: command not found\n", argv[0]); // exec failed -> print error message
-        exit(0); // Terminate child process
-      } else { // setpgid failed
+        if (execve(argv[0], argv, environ) < 0) {
+          printf("%s: command not found\n", argv[0]); // exec failed -> print error message
+          exit(0); // Terminate child process
+        }
+      }
+
+      else { // setpgid failed
         printf("setpgid(0,0) failed: %s\n", strerror(errno));
       }
     }
 
-    if (!is_bg) { // fg job, therefore we must wait for it to complete
+    if (!bg) { // fg job, therefore we must wait for it to complete
+      int status;
       addjob(jobs, pid, FG, cmdline);
       waitfg(pid);
-    } else { // bg job
+    }
+
+    else { // bg job
       addjob(jobs, pid, BG, cmdline);
       job = getjobpid(jobs, pid);
       printf("[%d] (%d) %s\n", job->jid, job->pid, cmdline); // print out the details
@@ -294,9 +303,15 @@ int parseline(const char *cmdline, char **argv) {
 int builtin_cmd(char **argv) {
   if (strcmp(argv[0], "quit") == 0) { exit(0); } // quits the program
 
+  else if ((strcmp(argv[0], "&")) == 0) {
+    return 1;
+  }
+
   else if ((strcmp(argv[0], "bg") == 0) || (strcmp(argv[0], "fg") == 0)) { // TODO: call do_bgfg/ write func
     return 1;
-  } else if (strcmp(argv[0], "jobs") == 0) { // Print out the jobs *passes trace05*
+  }
+
+  else if (strcmp(argv[0], "jobs") == 0) { // Print out the jobs *passes trace05*
     listjobs(jobs);
     return 1;
   }
@@ -339,7 +354,7 @@ void sigchld_handler(int sig) {
   pid_t pid;
   int jid;
   int status;
-//  struct job_t *job;
+  struct job_t *job;
 
   while ((pid = waitpid(-1, &status, WNOHANG | WUNTRACED)) > 0) {
     if (WIFEXITED(status)) {
