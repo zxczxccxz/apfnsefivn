@@ -179,14 +179,25 @@ void eval(char *cmdline)
 
   if (!is_builtin) {
     if ((pid = fork()) == 0) { // Not a built in command -> fork off a child process
-      /* Reminder of how this method works
-       * exec(v)(p):
-       *    (v) - to pass in an array of char*
-       *    (p) - use the environment path variable to search for an executable file
+      /*
+       * If pid is 0
+       * -> the PID of the calling process is used
+       * If pgid is 0
+       * -> the PGID of the process specified is made the same as its PID
       */
-      execvp(argv[0], argv);
-      printf("%s: command not found\n", argv[0]); // exec failed -> print error message
-      exit(0); // Terminate child process
+      if ((setpgid(0,0)) == 0) { // setpgid succeeded
+        /* Reminder of how this method works
+         * exec(v)(p):
+         *    (v) - to pass in an array of char*
+         *    (e) - pass environ global var
+        */
+        execve(argv[0], argv, environ);
+        printf("%s: command not found\n", argv[0]); // exec failed -> print error message
+        exit(0); // Terminate child process
+      }
+      else { // setpgid failed
+        printf("setpgid(0,0) failed: %s\n", strerror(errno));
+      }
     }
 
     if (!is_bg) { // fg job, therefore we must wait for it to complete
@@ -321,7 +332,7 @@ void sigchld_handler(int sig)
 {
   pid_t pid;
   int status;
-  struct job_t *job;
+//  struct job_t *job;
 
   while ((pid = waitpid(-1, &status, WNOHANG)) > 0) {
     deletejob(jobs, pid);
@@ -344,18 +355,18 @@ void sigint_handler(int sig)
    * Else if (pid <= 0) -> sigint is sent to all processes (oversimplification)
   */
   pid = fgpid(jobs); // TODO: put this back in the if stmnt
-  printf("%d", pid);
+  printf("%d\n", pid);
   if ((pid) > 0) { // Get the pid of the fg process
     /*
      * Hints said to use -pid
      * If kill(-pid, SIGINT) == 0 -> successful
-     * Else kill(-pid, SIGINT) == -1 -> errno is set?
+     * Else kill(-pid, SIGINT) == -1 -> errno is set
     */
     if (kill(-pid, SIGINT) == 0) {
-      printf("Successful killing :)");
+      printf("Successful killing :)\n");
     }
     else {
-      printf("Big fat no %s", strerror(errno));
+      printf("Error killing: %s\n", strerror(errno));
     }
   }
   return;
