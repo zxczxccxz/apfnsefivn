@@ -411,7 +411,7 @@ void sigchld_handler(int sig) {
       jid = pid2jid(pid);
       job = getjobpid(jobs, pid);
       job->state = ST;
-      printf("Job [%d] (%d) stopped by signal 20\n", jid, pid); // TODO: Idk if its supposed to just be 20 all the time but using status was not working
+      printf("Job [%d] (%d) stopped by signal 20\n", jid, pid);
     }
   }
 
