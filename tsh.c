@@ -189,25 +189,21 @@ void eval(char *cmdline) {
      * Following the hint given in the shlab.pdf
      * Set the sigprocmask to block SIGCHLD signals before the child is forked
      * Then, unblock after calls to addjob & before calls to execve
+     * Kept breaking at trace 4 so I commented it out
     */
-    sigset_t sigset;
-    sigemptyset(&sigset);
-    sigaddset(&sigset, SIGCHLD);
-    sigprocmask(SIG_BLOCK, &sigset, NULL);
-
-    sleep(1);
+//    sigset_t sigset;
+//    sigemptyset(&sigset);
+//    sigaddset(&sigset, SIGCHLD);
+//    sigprocmask(SIG_BLOCK, &sigset, NULL);
 
     if ((pid = fork()) == 0) { // Not a built in command -> fork off a child process
-      sigprocmask(SIG_UNBLOCK, &sigset, NULL);
+//      sigprocmask(SIG_UNBLOCK, &sigset, NULL);
       /*
        * If pid is 0 -> the PID of the calling process is used
        * If pgid is 0 -> the PGID of the process specified is made the same as its PID
       */
       if ((setpgid(0, 0)) == 0) { // setpgid succeeded
         if (execve(argv[0], argv, environ) < 0) {
-
-          sleep(2);
-
           printf("%s: Command not found\n", argv[0]); // exec failed -> print error message
           exit(0); // Terminate child process
         }
@@ -219,20 +215,14 @@ void eval(char *cmdline) {
     }
 
     if (!bg) { // fg job, therefore we must wait for it to complete
-
-      sleep(2);
-
       addjob(jobs, pid, FG, cmdline);
-      sigprocmask(SIG_UNBLOCK, &sigset, NULL);
+//      sigprocmask(SIG_UNBLOCK, &sigset, NULL);
       waitfg(pid);
     }
 
     else { // bg job
-
-      sleep(1);
-
       addjob(jobs, pid, BG, cmdline);
-      sigprocmask(SIG_UNBLOCK, &sigset, NULL);
+//      sigprocmask(SIG_UNBLOCK, &sigset, NULL);
       job = getjobpid(jobs, pid);
       printf("[%d] (%d) %s", job->jid, job->pid, cmdline); // print out the details
     }
